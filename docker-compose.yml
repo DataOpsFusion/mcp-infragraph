@@ -1,0 +1,38 @@
+services:
+
+  # ── MCP / RAG server ─────────────────────────────────────────────────────────
+  infragraph-mcp:
+    image: docker-local.homeserverlocal.com/infragraph/infragraph:latest
+    container_name: infragraph-mcp
+    restart: unless-stopped
+    environment:
+      MODE: sse
+      PORT: "8080"
+      # db-docker connections (already on the same LAN — no proxy needed)
+      NEO4J_URI: bolt://192.168.0.101:7687
+      NEO4J_USER: neo4j
+      NEO4J_PASSWORD: ${NEO4J_PASSWORD}
+      QDRANT_HOST: "192.168.0.101"
+      QDRANT_PORT: "6333"
+      QDRANT_COLLECTION: infragraph
+      MCP_API_KEY: ${MCP_API_KEY}
+      # OpenRouter — set real key in .env, never hardcode
+      OPENROUTER_API_KEY: ${OPENROUTER_API_KEY}
+      OPENROUTER_BASE_URL: https://openrouter.ai/api/v1
+      # Model tiers
+      EMBED_MODEL: openai/text-embedding-3-small
+      EMBED_DIM: "1536"
+      EXTRACT_MODEL: mistralai/mistral-large-2512
+      CHAT_MODEL: deepseek/deepseek-v3-0324
+      # Chunking
+      CHUNK_SIZE: "512"
+      CHUNK_OVERLAP: "64"
+      DEDUP_THRESHOLD: "0.92"
+    ports:
+      - "8181:8080"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
