@@ -14,7 +14,7 @@ from pathlib import Path
 
 import chardet
 
-from infragraph.ingestion.ocr import OCR_ALL_EXTS, is_ocr_candidate, extract_text_safe
+from infragraph.ingestion.ocr import OCR_ALL_EXTS, extract_text_safe, is_ocr_candidate
 
 log = logging.getLogger(__name__)
 
@@ -59,7 +59,6 @@ def _read_text_file(path: Path) -> str | None:
 
 
 def _handle_file(path: Path) -> ScanResult | None:
-    ext = path.suffix.lower()
 
     if is_ocr_candidate(path):
         if path.stat().st_size > _MAX_OCR_FILE_BYTES:

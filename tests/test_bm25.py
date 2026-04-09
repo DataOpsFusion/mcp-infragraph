@@ -1,12 +1,13 @@
 """Tests for BM25Index and RRF fusion."""
 from __future__ import annotations
-import pytest
-
 
 FAKE_CHUNKS = [
-    {"chunk_id": "nginx.md::0", "text": "nginx reverse proxy port 80 docker-server", "source_path": "nginx.md", "doc_type": "markdown"},
-    {"chunk_id": "folo.md::0", "text": "folo rss reader port 5020 docker-server", "source_path": "folo.md", "doc_type": "markdown"},
-    {"chunk_id": "vpn.md::0",  "text": "openvpn tls-crypt server port 1194 udp",   "source_path": "vpn.md",  "doc_type": "markdown"},
+    {"chunk_id": "nginx.md::0", "text": "nginx reverse proxy port 80 docker-server",
+     "source_path": "nginx.md", "doc_type": "markdown"},
+    {"chunk_id": "folo.md::0", "text": "folo rss reader port 5020 docker-server",
+     "source_path": "folo.md", "doc_type": "markdown"},
+    {"chunk_id": "vpn.md::0", "text": "openvpn tls-crypt server port 1194 udp",
+     "source_path": "vpn.md", "doc_type": "markdown"},
 ]
 
 

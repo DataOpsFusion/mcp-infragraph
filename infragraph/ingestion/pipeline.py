@@ -5,16 +5,17 @@ Ingestion pipeline — orchestrates:
 from __future__ import annotations
 
 import logging
+from collections.abc import Callable
 from dataclasses import dataclass
 
 from infragraph.embedding import embed_texts
 from infragraph.extraction.extractor import Extractor
 from infragraph.ingestion.chunker import Chunk, chunk_document
+from infragraph.ingestion.context_header import ContextHeaderGenerator
 from infragraph.ingestion.scanner import scan_paths
 from infragraph.normalization.writer import GraphWriter
 from infragraph.storage.neo4j import Neo4jClient
 from infragraph.storage.qdrant import QdrantClient
-from infragraph.ingestion.context_header import ContextHeaderGenerator
 
 log = logging.getLogger(__name__)
 

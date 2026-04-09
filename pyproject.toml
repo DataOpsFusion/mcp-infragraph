@@ -44,5 +44,8 @@ infragraph-mcp    = "infragraph.mcp.server:main"
 [tool.hatch.build.targets.wheel]
 packages = ["infragraph", "scripts"]
 
+[tool.ruff]
+line-length = 120
+
 [tool.ruff.lint]
 select = ["E", "F", "I"]

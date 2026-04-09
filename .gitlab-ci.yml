@@ -23,8 +23,7 @@ test:
   stage: test
   image: python:3.12-slim
   before_script:
-    - pip install -r requirements.txt --quiet
-    - pip install pytest --quiet
+    - pip install ".[dev]" --quiet
   script:
     - |
       if [ -d tests ]; then

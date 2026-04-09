@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from infragraph.ontology import EntityType, RelationType
+from infragraph.ontology import RelationType
 from infragraph.storage.neo4j import Neo4jClient
 
 

@@ -19,7 +19,6 @@ import json
 import logging
 import os
 import threading
-import time
 from pathlib import Path
 from typing import Any
 
@@ -699,7 +698,7 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
                     entities_written += written["entities"]
                     relations_written += written["relations"]
                 except Exception as exc:
-                    import logging; logging.getLogger(__name__).warning(
+                    logging.getLogger(__name__).warning(
                         "graph extraction skipped for %s: %s", chunk.chunk_id, exc)
 
             return (
@@ -780,7 +779,11 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         return _text(msg)
 
     if name == "search_knowledge":
-        cache_args = {"query": arguments["query"], "top_k": arguments.get("top_k", 20), "doc_type": arguments.get("doc_type")}
+        cache_args = {
+            "query": arguments["query"],
+            "top_k": arguments.get("top_k", 20),
+            "doc_type": arguments.get("doc_type"),
+        }
         cached = _rcache_get("search_knowledge", cache_args)
         if cached:
             return _text(cached)
@@ -954,14 +957,15 @@ async def _run_stdio() -> None:
 def _run_sse() -> None:
     """HTTP/SSE server — used when deployed as a container."""
     import os
+
     import uvicorn
+    from mcp.server.sse import SseServerTransport
     from starlette.applications import Starlette
     from starlette.middleware import Middleware
     from starlette.middleware.base import BaseHTTPMiddleware
     from starlette.requests import Request
-    from starlette.responses import JSONResponse
+    from starlette.responses import JSONResponse, Response
     from starlette.routing import Mount, Route
-    from mcp.server.sse import SseServerTransport
 
     cfg = get_settings()
     port = int(os.environ.get("PORT", 8080))

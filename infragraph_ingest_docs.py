@@ -2,15 +2,15 @@
 Ingest self-describing infragraph documentation directly into the pipeline.
 Run inside the infragraph container: python3 /tmp/infragraph_ingest_docs.py
 """
-import sys
 import logging
+
+from infragraph.embedding import embed_texts
+from infragraph.ingestion.chunker import chunk_document
+from infragraph.ingestion.pipeline import IngestionPipeline
+from infragraph.normalization.writer import GraphWriter
+
 logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
 log = logging.getLogger("ingest_docs")
-
-from infragraph.ingestion.pipeline import IngestionPipeline
-from infragraph.ingestion.chunker import chunk_document
-from infragraph.embedding import embed_texts
-from infragraph.normalization.writer import GraphWriter
 
 pipeline = IngestionPipeline()
 pipeline.bootstrap()

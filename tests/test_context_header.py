@@ -1,9 +1,8 @@
 """Tests for ContextHeaderGenerator — uses fakes for Redis and HTTP."""
 from __future__ import annotations
-import hashlib
-import pytest
-from unittest.mock import MagicMock, patch
 
+import hashlib
+from unittest.mock import MagicMock, patch
 
 SAMPLE_DOC = "# nginx Service\nNginx runs on Docker-Server at 192.168.0.50 port 80."
 SAMPLE_CHUNK = "Nginx runs on Docker-Server at 192.168.0.50 port 80."

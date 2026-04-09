@@ -5,7 +5,7 @@ import logging
 from contextlib import contextmanager
 from typing import Any, Generator
 
-from neo4j import GraphDatabase, Driver, Session
+from neo4j import Driver, GraphDatabase, Session
 from neo4j.exceptions import ServiceUnavailable
 
 from infragraph.config import get_settings
