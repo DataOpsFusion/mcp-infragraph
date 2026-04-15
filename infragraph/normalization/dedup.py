@@ -17,9 +17,16 @@ from infragraph.extraction.schema import ExtractedEntity
 
 
 def _normalise(s: str) -> str:
+    """Normalise to a stable comparison key.
+
+    Hyphens, underscores, and whitespace are all treated as equivalent
+    separators and stripped out so that ``skill-gateway``, ``skill_gateway``
+    and ``Skill gateway`` all hash to the same key.
+    """
     s = unicodedata.normalize("NFKD", s).lower()
-    s = re.sub(r"[^a-z0-9\-\._]", "", s)
-    return s.strip("-_.")
+    s = re.sub(r"[-_\s]+", "", s)   # collapse separators
+    s = re.sub(r"[^a-z0-9\.]", "", s)  # strip remaining non-alnum except dot
+    return s.strip(".")
 
 
 @dataclass
