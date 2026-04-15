@@ -54,6 +54,12 @@ extract ALL named infrastructure entities and the relationships between them.
 - For Service entities, capture port, protocol, version if present.
 - Assign confidence between 0.5 (uncertain) and 1.0 (explicit).
 - Return ONLY valid JSON matching the schema below, no prose.
+- Entity names must be semantic (hostnames, service names), NOT bare IDs.
+  If text says "LXC 111 (db-docker)" use "db-docker" as name, store ct_id="111"
+  as a property. Never name an entity "LXC 111", "CT 108", "VM 200" etc.
+- Prefer hostnames over IP addresses for entity names. Use the hostname as name
+  and store the IP as a property. Only use an IP as the name when no hostname
+  is available in the surrounding context.
 
 ## Output JSON schema
 {json.dumps(EXTRACTION_JSON_SCHEMA, indent=2)}
