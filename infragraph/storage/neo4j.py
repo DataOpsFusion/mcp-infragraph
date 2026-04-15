@@ -207,3 +207,42 @@ class Neo4jClient:
     def run_cypher(self, query: str, params: dict | None = None) -> list[dict]:
         with self.session() as s:
             return [dict(r) for r in s.run(query, **(params or {}))]
+
+    def delete_entity(self, entity_id: str) -> dict[str, Any]:
+        """Delete a specific entity node and all its relationships by ID."""
+        with self.session() as s:
+            result = s.run(
+                "MATCH (n {id: $id}) "
+                "WITH n, count { (n)--() } AS rel_count "
+                "DETACH DELETE n "
+                "RETURN rel_count",
+                id=entity_id,
+            )
+            rec = result.single()
+            return {
+                "deleted": rec is not None,
+                "entity_id": entity_id,
+                "relations_removed": rec["rel_count"] if rec else 0,
+            }
+
+    def delete_relation(
+        self,
+        source_id: str,
+        target_id: str,
+        rel_type: str | None = None,
+    ) -> dict[str, Any]:
+        """Delete relation(s) between two entity IDs. Optionally filter by type."""
+        if rel_type:
+            query = (
+                "MATCH (a {id: $src})-[r:" + rel_type + "]->(b {id: $tgt}) "
+                "DELETE r RETURN count(r) AS removed"
+            )
+        else:
+            query = (
+                "MATCH (a {id: $src})-[r]->(b {id: $tgt}) "
+                "DELETE r RETURN count(r) AS removed"
+            )
+        with self.session() as s:
+            result = s.run(query, src=source_id, tgt=target_id)
+            rec = result.single()
+            return {"relations_removed": rec["removed"] if rec else 0}

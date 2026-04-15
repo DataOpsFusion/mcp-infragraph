@@ -118,6 +118,20 @@ def _rcache_set(tool: str, args: dict, value: str) -> None:
         log.warning("Redis cache set failed (%s: %s)", type(exc).__name__, exc)
 
 
+
+def _rcache_bust_entity_cache() -> None:
+    """Invalidate lookup_entity and knowledge_stats cache after a graph mutation."""
+    r = _get_redis()
+    if not r:
+        return
+    try:
+        keys = r.keys("infragraph:cache:lookup_entity:*")
+        if keys:
+            r.delete(*keys)
+        r.delete(_cache_key("knowledge_stats", {}))
+    except Exception as exc:
+        log.warning("Cache bust failed (%s: %s)", type(exc).__name__, exc)
+
 def _get_semantic() -> SemanticRetriever:
     global _semantic
     if _semantic is None:
@@ -410,6 +424,53 @@ async def list_tools() -> list[Tool]:
                     },
                 },
                 "required": ["content", "source"],
+            },
+        ),
+        Tool(
+            name="list_sources",
+            description=(
+                "List all document source identifiers currently indexed in the knowledge base. "
+                "Use this before remove_document to discover what source strings exist."
+            ),
+            annotations={"readOnlyHint": True, "idempotentHint": True},
+            inputSchema={"type": "object", "properties": {}},
+        ),
+        Tool(
+            name="delete_entity",
+            description=(
+                "Delete a specific entity node from the knowledge graph by its ID, "
+                "removing all its relationships. Use lookup_entity first to find the ID."
+            ),
+            annotations={"readOnlyHint": False, "destructiveHint": True, "idempotentHint": True},
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "entity_id": {
+                        "type": "string",
+                        "description": "Exact entity ID as returned by lookup_entity.",
+                    },
+                },
+                "required": ["entity_id"],
+            },
+        ),
+        Tool(
+            name="delete_relation",
+            description=(
+                "Delete relationship(s) between two entity nodes in the knowledge graph. "
+                "Use lookup_entity to find entity IDs first."
+            ),
+            annotations={"readOnlyHint": False, "destructiveHint": True, "idempotentHint": True},
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "source_id": {"type": "string", "description": "ID of the source entity."},
+                    "target_id": {"type": "string", "description": "ID of the target entity."},
+                    "rel_type": {
+                        "type": "string",
+                        "description": "Optional relationship type, e.g. RUNS_ON. If omitted all edges between the two nodes are deleted.",
+                    },
+                },
+                "required": ["source_id", "target_id"],
             },
         ),
         Tool(
@@ -924,6 +985,43 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
 
         loop = asyncio.get_running_loop()
         msg = await loop.run_in_executor(None, _run_text_ingest)
+        return _text(msg)
+
+    if name == "list_sources":
+        def _run_list_sources() -> str:
+            pipeline = _get_pipeline()
+            sources = pipeline._qdrant.list_sources()
+            return json.dumps({"sources": sources, "count": len(sources)}, indent=2)
+        loop = asyncio.get_running_loop()
+        msg = await loop.run_in_executor(None, _run_list_sources)
+        return _text(msg)
+
+    if name == "delete_entity":
+        entity_id = arguments.get("entity_id", "").strip()
+        if not entity_id:
+            return _text("delete_entity: entity_id must not be empty.")
+        def _run_delete_entity() -> str:
+            pipeline = _get_pipeline()
+            result = pipeline._neo4j.delete_entity(entity_id)
+            return json.dumps(result, indent=2)
+        loop = asyncio.get_running_loop()
+        msg = await loop.run_in_executor(None, _run_delete_entity)
+        _rcache_bust_entity_cache()
+        return _text(msg)
+
+    if name == "delete_relation":
+        source_id = arguments.get("source_id", "").strip()
+        target_id = arguments.get("target_id", "").strip()
+        if not source_id or not target_id:
+            return _text("delete_relation: source_id and target_id are required.")
+        rel_type = (arguments.get("rel_type") or "").strip() or None
+        def _run_delete_relation() -> str:
+            pipeline = _get_pipeline()
+            result = pipeline._neo4j.delete_relation(source_id, target_id, rel_type)
+            return json.dumps(result, indent=2)
+        loop = asyncio.get_running_loop()
+        msg = await loop.run_in_executor(None, _run_delete_relation)
+        _rcache_bust_entity_cache()
         return _text(msg)
 
     return _text(f"Unknown tool: {name}")

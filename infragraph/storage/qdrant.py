@@ -99,6 +99,28 @@ class QdrantClient:
 
     # ── search ────────────────────────────────────────────────────────────────
 
+
+    def list_sources(self) -> list[str]:
+        """Return all distinct source_path values indexed in the collection."""
+        sources: set[str] = set()
+        offset = None
+        while True:
+            results, next_offset = self._client.scroll(
+                collection_name=self._collection,
+                limit=1000,
+                offset=offset,
+                with_payload=["source_path"],
+                with_vectors=False,
+            )
+            for r in results:
+                sp = (r.payload or {}).get("source_path")
+                if sp:
+                    sources.add(sp)
+            if next_offset is None:
+                break
+            offset = next_offset
+        return sorted(sources)
+
     def search(
         self,
         vector: list[float],
