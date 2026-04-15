@@ -445,6 +445,30 @@ async def list_tools() -> list[Tool]:
             },
         ),
         Tool(
+            name="merge_entities",
+            description=(
+                "Mark alias entity IDs as duplicates of a canonical entity. "
+                "Creates ALIAS_OF edges from each alias to the canonical node. "
+                "Use lookup_entity to find IDs first, then merge duplicates."
+            ),
+            annotations={"readOnlyHint": False, "destructiveHint": False, "idempotentHint": True},
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "canonical_id": {
+                        "type": "string",
+                        "description": "Entity ID to keep as the canonical (authoritative) node.",
+                    },
+                    "alias_ids": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "description": "List of entity IDs that are duplicates of the canonical node.",
+                    },
+                },
+                "required": ["canonical_id", "alias_ids"],
+            },
+        ),
+        Tool(
             name="list_entities_by_type",
             description=(
                 "List all entity nodes of a given type from the knowledge graph. "
@@ -1059,6 +1083,25 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             return json.dumps({"sources": sources, "count": len(sources)}, indent=2)
         loop = asyncio.get_running_loop()
         msg = await loop.run_in_executor(None, _run_list_sources)
+        return _text(msg)
+
+    if name == "merge_entities":
+        canonical_id = (arguments.get("canonical_id") or "").strip()
+        alias_ids = [a.strip() for a in (arguments.get("alias_ids") or []) if a.strip()]
+        if not canonical_id:
+            return _text("merge_entities: canonical_id is required.")
+        if not alias_ids:
+            return _text("merge_entities: alias_ids must be a non-empty list.")
+        def _run_merge() -> str:
+            pipeline = _get_pipeline()
+            pipeline._neo4j.merge_aliases(canonical_id, alias_ids)
+            return json.dumps(
+                {"merged": True, "canonical_id": canonical_id, "aliases_linked": alias_ids},
+                indent=2,
+            )
+        loop = asyncio.get_running_loop()
+        msg = await loop.run_in_executor(None, _run_merge)
+        _rcache_bust_entity_cache()
         return _text(msg)
 
     if name == "list_entities_by_type":
