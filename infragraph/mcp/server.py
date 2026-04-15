@@ -445,6 +445,39 @@ async def list_tools() -> list[Tool]:
             },
         ),
         Tool(
+            name="list_entities_by_type",
+            description=(
+                "List all entity nodes of a given type from the knowledge graph. "
+                "Useful for auditing stale data or browsing all Hosts, VMs, Services, etc. "
+                "Supports pagination via skip and limit."
+            ),
+            annotations={"readOnlyHint": True, "idempotentHint": True},
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "entity_type": {
+                        "type": "string",
+                        "description": (
+                            "Node label to filter by: Host, VM, Service, Container, "
+                            "Domain, Port, Repository, Document, Person, "
+                            "CredentialRef, Runbook, Incident, Project."
+                        ),
+                    },
+                    "limit": {
+                        "type": "integer",
+                        "default": 100,
+                        "description": "Max results per page (default 100).",
+                    },
+                    "skip": {
+                        "type": "integer",
+                        "default": 0,
+                        "description": "Number of results to skip for pagination.",
+                    },
+                },
+                "required": ["entity_type"],
+            },
+        ),
+        Tool(
             name="update_entity",
             description=(
                 "Patch properties on an existing entity node without re-ingesting the source. "
@@ -1026,6 +1059,34 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             return json.dumps({"sources": sources, "count": len(sources)}, indent=2)
         loop = asyncio.get_running_loop()
         msg = await loop.run_in_executor(None, _run_list_sources)
+        return _text(msg)
+
+    if name == "list_entities_by_type":
+        entity_type = (arguments.get("entity_type") or "").strip()
+        if not entity_type:
+            return _text("list_entities_by_type: entity_type is required.")
+        # Whitelist valid labels to prevent Cypher injection
+        valid_types = {
+            "Host", "VM", "Service", "Container", "Domain", "Port",
+            "Repository", "Document", "Person", "CredentialRef",
+            "Runbook", "Incident", "Project",
+        }
+        if entity_type not in valid_types:
+            return _text(
+                "list_entities_by_type: unknown type. Valid: "
+                + ", ".join(sorted(valid_types))
+            )
+        limit = max(1, min(int(arguments.get("limit", 100)), 500))
+        skip = max(0, int(arguments.get("skip", 0)))
+        def _run_list_by_type() -> str:
+            pipeline = _get_pipeline()
+            entities = pipeline._neo4j.list_entities_by_type(entity_type, limit, skip)
+            return json.dumps(
+                {"type": entity_type, "count": len(entities), "entities": entities},
+                indent=2,
+            )
+        loop = asyncio.get_running_loop()
+        msg = await loop.run_in_executor(None, _run_list_by_type)
         return _text(msg)
 
     if name == "update_entity":

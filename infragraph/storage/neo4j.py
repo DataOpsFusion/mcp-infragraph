@@ -209,6 +209,23 @@ class Neo4jClient:
             return [dict(r) for r in s.run(query, **(params or {}))]
 
 
+
+    def list_entities_by_type(
+        self,
+        entity_type: str,
+        limit: int = 100,
+        skip: int = 0,
+    ) -> list[dict]:
+        """Return all entities of a given type, ordered by name, with pagination."""
+        with self.session() as s:
+            result = s.run(
+                "MATCH (n:" + entity_type + ") "
+                "RETURN n ORDER BY n.name SKIP $skip LIMIT $limit",
+                skip=skip,
+                limit=limit,
+            )
+            return [self._node_to_dict(r["n"]) for r in result]
+
     def update_entity(
         self,
         entity_id: str,
