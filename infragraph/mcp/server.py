@@ -467,7 +467,7 @@ async def list_tools() -> list[Tool]:
                     "target_id": {"type": "string", "description": "ID of the target entity."},
                     "rel_type": {
                         "type": "string",
-                        "description": "Optional relationship type, e.g. RUNS_ON. If omitted all edges between the two nodes are deleted.",
+                        "description": "Relationship type, e.g. RUNS_ON. Omit to delete all edges.",
                     },
                 },
                 "required": ["source_id", "target_id"],
