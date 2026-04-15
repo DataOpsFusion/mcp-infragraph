@@ -995,9 +995,9 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             pipeline = _get_pipeline()
             pipeline._qdrant.delete_by_source(source)
             try:
-                pipeline._neo4j.execute_query(
+                pipeline._neo4j.run_cypher(
                     "MATCH (n) WHERE n.source_doc = $src DETACH DELETE n",
-                    parameters_={"src": source},
+                    params={"src": source},
                 )
             except Exception as exc:
                 return f"Deleted '{source}' from Qdrant. Neo4j cleanup skipped: {exc}"
