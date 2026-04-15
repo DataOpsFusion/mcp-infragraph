@@ -436,6 +436,28 @@ async def list_tools() -> list[Tool]:
             inputSchema={"type": "object", "properties": {}},
         ),
         Tool(
+            name="update_entity",
+            description=(
+                "Patch properties on an existing entity node without re-ingesting the source. "
+                "Useful for correcting names, confidence scores, or custom properties."
+            ),
+            annotations={"readOnlyHint": False, "destructiveHint": False, "idempotentHint": True},
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "entity_id": {
+                        "type": "string",
+                        "description": "Exact entity ID as returned by lookup_entity.",
+                    },
+                    "props": {
+                        "type": "object",
+                        "description": "Key-value pairs to merge into the entity node.",
+                    },
+                },
+                "required": ["entity_id", "props"],
+            },
+        ),
+        Tool(
             name="delete_entity",
             description=(
                 "Delete a specific entity node from the knowledge graph by its ID, "
@@ -994,6 +1016,24 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
             return json.dumps({"sources": sources, "count": len(sources)}, indent=2)
         loop = asyncio.get_running_loop()
         msg = await loop.run_in_executor(None, _run_list_sources)
+        return _text(msg)
+
+    if name == "update_entity":
+        entity_id = arguments.get("entity_id", "").strip()
+        props = arguments.get("props") or {}
+        if not entity_id:
+            return _text("update_entity: entity_id must not be empty.")
+        if not isinstance(props, dict) or not props:
+            return _text("update_entity: props must be a non-empty object.")
+        def _run_update_entity() -> str:
+            pipeline = _get_pipeline()
+            result = pipeline._neo4j.update_entity(entity_id, props)
+            if not result:
+                return json.dumps({"updated": False, "entity_id": entity_id})
+            return json.dumps({"updated": True, "entity": result}, indent=2)
+        loop = asyncio.get_running_loop()
+        msg = await loop.run_in_executor(None, _run_update_entity)
+        _rcache_bust_entity_cache()
         return _text(msg)
 
     if name == "delete_entity":

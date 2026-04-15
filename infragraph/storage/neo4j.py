@@ -208,6 +208,22 @@ class Neo4jClient:
         with self.session() as s:
             return [dict(r) for r in s.run(query, **(params or {}))]
 
+
+    def update_entity(
+        self,
+        entity_id: str,
+        props: dict[str, Any],
+    ) -> dict[str, Any]:
+        """Patch properties on an existing entity node. Returns updated node or empty dict if not found."""
+        with self.session() as s:
+            result = s.run(
+                "MATCH (n {id: $id}) SET n += $props RETURN n",
+                id=entity_id,
+                props=props,
+            )
+            rec = result.single()
+            return self._node_to_dict(rec["n"]) if rec else {}
+
     def delete_entity(self, entity_id: str) -> dict[str, Any]:
         """Delete a specific entity node and all its relationships by ID."""
         with self.session() as s:
