@@ -32,7 +32,22 @@ extract ALL named infrastructure entities and the relationships between them.
 ## Relation types you may use
 {", ".join(r.value for r in RelationType)}
 
-## Rules
+## Relation selection rules
+- RUNS_ON: service/container is deployed on a host or VM.
+- HOSTS: host/VM contains a service or container.
+- PROXIED_BY: traffic to a service/domain goes through a proxy (nginx, traefik).
+- RESOLVES_TO: a domain name maps to an IP or host.
+- SUBDOMAIN_OF: a domain is a subdomain of a parent domain. Use instead of RELATED_TO_INCIDENT for domain hierarchy.
+- CONNECTS_TO: a service calls or communicates with another service over the network.
+- STORES_DATA_IN: a service reads/writes to a database or storage system.
+- BACKS_UP_TO: data is backed up to a target.
+- REPLICATES_TO: a database replicates to a replica.
+- DEPENDS_ON: logical or software-level dependency between services.
+- PART_OF: entity belongs to a cluster, group, or project. Use instead of RELATED_TO_INCIDENT for membership.
+- RELATED_TO_INCIDENT: use ONLY when the relationship is explicitly an incident or outage connection.
+- ALIAS_OF: two entities refer to the same real-world thing.
+
+## General rules
 - Only extract entities that are explicitly mentioned.
 - Do NOT invent entities or relationships.
 - For Host/VM/Container entities, capture ip, hostname, os in properties.
