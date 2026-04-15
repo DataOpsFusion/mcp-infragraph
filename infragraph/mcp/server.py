@@ -430,10 +430,19 @@ async def list_tools() -> list[Tool]:
             name="list_sources",
             description=(
                 "List all document source identifiers currently indexed in the knowledge base. "
-                "Use this before remove_document to discover what source strings exist."
+                "Use this before remove_document to discover what source strings exist. "
+                "Pass with_counts=true to also get chunk counts per source."
             ),
             annotations={"readOnlyHint": True, "idempotentHint": True},
-            inputSchema={"type": "object", "properties": {}},
+            inputSchema={
+                "type": "object",
+                "properties": {
+                    "with_counts": {
+                        "type": "boolean",
+                        "description": "If true, return {source, chunk_count} objects instead of strings.",
+                    },
+                },
+            },
         ),
         Tool(
             name="update_entity",
@@ -1010,9 +1019,10 @@ async def call_tool(name: str, arguments: dict) -> list[TextContent]:
         return _text(msg)
 
     if name == "list_sources":
+        with_counts = bool(arguments.get("with_counts", False))
         def _run_list_sources() -> str:
             pipeline = _get_pipeline()
-            sources = pipeline._qdrant.list_sources()
+            sources = pipeline._qdrant.list_sources(with_counts=with_counts)
             return json.dumps({"sources": sources, "count": len(sources)}, indent=2)
         loop = asyncio.get_running_loop()
         msg = await loop.run_in_executor(None, _run_list_sources)

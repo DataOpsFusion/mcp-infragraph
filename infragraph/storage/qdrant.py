@@ -100,9 +100,13 @@ class QdrantClient:
     # ── search ────────────────────────────────────────────────────────────────
 
 
-    def list_sources(self) -> list[str]:
-        """Return all distinct source_path values indexed in the collection."""
-        sources: set[str] = set()
+    def list_sources(self, with_counts: bool = False) -> list[str] | list[dict]:
+        """Return all distinct source_path values indexed in the collection.
+
+        Args:
+            with_counts: If True, return list of {source, chunk_count} dicts.
+        """
+        counts: dict[str, int] = {}
         offset = None
         while True:
             results, next_offset = self._client.scroll(
@@ -115,11 +119,13 @@ class QdrantClient:
             for r in results:
                 sp = (r.payload or {}).get("source_path")
                 if sp:
-                    sources.add(sp)
+                    counts[sp] = counts.get(sp, 0) + 1
             if next_offset is None:
                 break
             offset = next_offset
-        return sorted(sources)
+        if with_counts:
+            return [{"source": s, "chunk_count": counts[s]} for s in sorted(counts)]
+        return sorted(counts)
 
     def search(
         self,
