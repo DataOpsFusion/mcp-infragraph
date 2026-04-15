@@ -2,7 +2,7 @@ services:
 
   # ── MCP / RAG server ─────────────────────────────────────────────────────────
   infragraph-mcp:
-    image: docker-local.homeserverlocal.com/infragraph/infragraph:latest
+    image: harbor.homeserverlocal.com/mcp/infragraph:latest
     container_name: infragraph-mcp
     restart: unless-stopped
     environment:

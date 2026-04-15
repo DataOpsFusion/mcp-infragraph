@@ -1,9 +1,13 @@
-REGISTRY    := docker-local.homeserverlocal.com
-PROJECT     := infragraph
-IMAGE       := $(REGISTRY)/$(PROJECT)/infragraph
+# Primary registry — Harbor (used by docker-server and all homelab hosts)
+REGISTRY    := harbor.homeserverlocal.com/mcp
+IMAGE       := $(REGISTRY)/infragraph
 TAG         ?= latest
 
-DEPLOY_HOST := devops@192.168.0.70
+# Legacy local registry (dev-workstation only; not resolvable from docker-server)
+LOCAL_REGISTRY := docker-local.homeserverlocal.com
+LOCAL_IMAGE    := $(LOCAL_REGISTRY)/infragraph/infragraph
+
+DEPLOY_HOST := application@192.168.0.50
 DEPLOY_DIR  := /opt/infragraph
 
 # ── build & push from Mac (linux/amd64 via buildx, direct push — no local load) ──
@@ -13,6 +17,7 @@ build:
 	docker buildx build \
 		--platform linux/amd64 \
 		--tag $(IMAGE):$(TAG) \
+		--tag $(LOCAL_IMAGE):$(TAG) \
 		--push \
 		.
 
@@ -20,7 +25,7 @@ build:
 
 .PHONY: deploy
 deploy:
-	ssh $(DEPLOY_HOST) "sudo mkdir -p $(DEPLOY_DIR) && sudo chown devops:devops $(DEPLOY_DIR)"
+	ssh $(DEPLOY_HOST) "sudo mkdir -p $(DEPLOY_DIR) && sudo chown application:application $(DEPLOY_DIR)"
 	scp docker-compose.yml $(DEPLOY_HOST):$(DEPLOY_DIR)/docker-compose.yml
 	scp .env               $(DEPLOY_HOST):$(DEPLOY_DIR)/.env
 	ssh $(DEPLOY_HOST) "cd $(DEPLOY_DIR) && \
@@ -31,7 +36,7 @@ deploy:
 
 .PHONY: release
 release: build deploy
-	@echo "Released $(IMAGE):$(TAG) to $(DEPLOY_HOST)"
+	@echo "Released $(IMAGE):$(TAG) and $(LOCAL_IMAGE):$(TAG) to $(DEPLOY_HOST)"
 
 # ── registry login (run once) ─────────────────────────────────────────────────
 
